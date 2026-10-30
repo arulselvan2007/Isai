@@ -3,7 +3,7 @@
 =============================================================================
   ISAI – Sovereign Personal AI Agent Framework
   Core Orchestrator & High-Performance Interactive Terminal Agent
-  Powered by Nebius AI Cloud & NVIDIA Nemotron-3 with Sovereign Edge Fallback
+  Autonomous Local Orchestration · Sovereign Intelligence Core
 =============================================================================
 """
 
@@ -19,10 +19,10 @@ from typing import List, Dict, Any, Optional, Tuple
 # Suppress library deprecation / rename warnings globally for clean output
 warnings.simplefilter("ignore")
 
-# Configuration Constants
-NEBIUS_BASE_URL = os.environ.get("NEBIUS_BASE_URL", "https://api.tokenfactory.nebius.com/v1")
-NEBIUS_MODEL = os.environ.get("NEBIUS_MODEL", "nvidia/nemotron-3-nano-30b")
-NEBIUS_API_KEY = os.environ.get("NEBIUS_API_KEY", "mock-nebius-key")
+# Configuration Constants (Supports custom private gateways or standalone local execution)
+SOVEREIGN_GATEWAY_URL = os.environ.get("ISAI_GATEWAY_URL", "")
+SOVEREIGN_MODEL = os.environ.get("ISAI_MODEL", "sovereign-agent-core")
+SOVEREIGN_API_KEY = os.environ.get("ISAI_API_KEY", "")
 
 # Debug Mode: Silent by default on normal turns; enabled via ISAI_DEBUG=1 or /debug command
 DEBUG_MODE = os.environ.get("ISAI_DEBUG", "0").lower() in ("1", "true", "yes")
@@ -82,7 +82,7 @@ def print_banner() -> None:
 │           |___| |____//_/   \\_\\  |___| /_/   \\_\\\\____||_____|_| \\_| |_|      │
 │                                                                             │
 │                   {Theme.BOLD}{Theme.WHITE}S O V E R E I G N   A G E N T   F R A M E W O R K{Theme.RESET}{Theme.GOLD}                 │
-│         {Theme.CYAN}Autonomous Orchestration{Theme.GOLD} · {Theme.PURPLE}Nebius AI Cloud{Theme.GOLD} · {Theme.EMERALD}NVIDIA Nemotron-3{Theme.GOLD}       │
+│        {Theme.CYAN}Autonomous Local Orchestration{Theme.GOLD} · {Theme.PURPLE}Sovereign Intelligence Core{Theme.GOLD}         │
 ╰─────────────────────────────────────────────────────────────────────────────╯{Theme.RESET}"""
     print(banner)
 
@@ -214,12 +214,14 @@ class ToolRegistry:
         """Returns live sovereign node telemetry."""
         uname = platform.uname()
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        engine_mode = "Local Sovereign Edge Core (Fully Standalone)" if not SOVEREIGN_API_KEY else f"Private Gateway Connected ({SOVEREIGN_MODEL})"
         return (
             f"• System: {uname.system} {uname.release} ({uname.machine})\n"
             f"• Python: {platform.python_version()}\n"
             f"• Timestamp: {now}\n"
             f"• Status: Sovereign Edge Online · Zero Telemetry Leakage\n"
-            f"• Gateway: {NEBIUS_BASE_URL} ({NEBIUS_MODEL})"
+            f"• Engine: Autonomous Local Orchestration · Sovereign Intelligence Core\n"
+            f"• Mode: {engine_mode}"
         )
 
 
@@ -271,7 +273,7 @@ def get_help_table() -> str:
                   Available: {Theme.PURPLE}sovereign{Theme.RESET}, {Theme.PURPLE}cinematic{Theme.RESET}, {Theme.PURPLE}anime{Theme.RESET}, {Theme.PURPLE}comic{Theme.RESET}, {Theme.PURPLE}technical{Theme.RESET}
   {Theme.BOLD}/tools{Theme.RESET}           Inspect autonomous tool registry & edge capabilities
   {Theme.BOLD}/status{Theme.RESET}          Display node telemetry, latency, and system health
-  {Theme.BOLD}/model{Theme.RESET}           Show Nebius Token Factory & NVIDIA Nemotron configs
+  {Theme.BOLD}/model{Theme.RESET}           Show Sovereign Engine & model configuration
   {Theme.BOLD}/clear{Theme.RESET}           Clear conversation memory and reset context
   {Theme.BOLD}/debug{Theme.RESET}           Toggle detailed router and tool debugging logs
   {Theme.BOLD}/help{Theme.RESET}            Display this sovereign guide
@@ -315,12 +317,13 @@ def handle_slash_command(command_line: str, state: Dict[str, Any]) -> Tuple[bool
         return True, msg
 
     elif cmd == "/model":
-        key_status = "Configured (Cloud Active)" if NEBIUS_API_KEY != "mock-nebius-key" else "Unset (Sovereign Edge Mode)"
+        engine_status = f"Gateway Connected ({SOVEREIGN_GATEWAY_URL})" if SOVEREIGN_API_KEY and SOVEREIGN_GATEWAY_URL else "Local Sovereign Edge Core (Fully Standalone)"
         msg = (
-            f"\n{Theme.GOLD}--- Inference Engine Configuration ---{Theme.RESET}\n"
-            f"• Base Gateway: {NEBIUS_BASE_URL}\n"
-            f"• Model ID: {NEBIUS_MODEL}\n"
-            f"• API Key: {key_status}\n"
+            f"\n{Theme.GOLD}--- Sovereign Engine Configuration ---{Theme.RESET}\n"
+            f"• Architecture: Autonomous Local Orchestration\n"
+            f"• Intelligence Core: Sovereign Edge Engine\n"
+            f"• Active Model: {SOVEREIGN_MODEL}\n"
+            f"• Status: {engine_status}\n"
         )
         return True, msg
 
@@ -403,8 +406,8 @@ def generate_direct_response(user_prompt: str, tool_result: Optional[Tuple[str, 
 
     if any(k in prompt_lower for k in ["who are you", "what is isai", "identify yourself"]):
         return (
-            "I am Isai (இ)—a sovereign personal AI agent framework designed for autonomous tool routing, "
-            "private edge computing, and hybrid inference via Nebius AI Cloud and NVIDIA Nemotron-3."
+            "I am Isai (இ)—a sovereign personal AI agent framework designed for autonomous local orchestration, "
+            "private edge computing, dynamic style expansion, and independent intelligent execution."
         )
 
     if any(k in prompt_lower for k in ["what can you do", "capabilities", "features"]):
@@ -412,8 +415,8 @@ def generate_direct_response(user_prompt: str, tool_result: Optional[Tuple[str, 
             "My capabilities include:\n"
             "• Autonomous Tools: Live web search, safe mathematical evaluation, and node telemetry\n"
             "• Dynamic Style Expansion: Cinematic 35mm, Japanese Anime, Comic Book Ink, and Technical Deep-Dive\n"
-            "• Hybrid Inference: Nebius Token Factory (NVIDIA Nemotron-3) with local Sovereign Edge fallback\n"
-            "• Sovereign Privacy: Zero external telemetry leakage when running edge operations"
+            "• Sovereign Intelligence: 100% independent local execution with zero external telemetry leakage\n"
+            "• Flexible Inference: Standalone edge orchestration with optional private API gateway support"
         )
 
     # 3. Dynamic Style Applied Generation
@@ -473,7 +476,7 @@ def run_isai_agent(
 ) -> str:
     """
     Isai Core Agentic Orchestrator
-    Routes execution cleanly to Nebius Token Factory or Sovereign Edge Fallback.
+    Autonomous Local Orchestration with optional Private Gateway Support.
     Intercepts slash commands immediately before any routing.
     """
     # 0. Intercept Slash Commands immediately
@@ -496,13 +499,13 @@ def run_isai_agent(
         tool_name, tool_data = tool_result
         augmented_context = f"\n[Context from Autonomous Tool '{tool_name}']:\n{tool_data}\n"
 
-    # 3. Attempt Cloud Inference via Nebius Token Factory
-    if NEBIUS_API_KEY != "mock-nebius-key":
+    # 3. Optional Private Gateway Inference
+    if SOVEREIGN_API_KEY and SOVEREIGN_GATEWAY_URL:
         try:
             from openai import OpenAI
-            client = OpenAI(base_url=NEBIUS_BASE_URL, api_key=NEBIUS_API_KEY)
+            client = OpenAI(base_url=SOVEREIGN_GATEWAY_URL, api_key=SOVEREIGN_API_KEY)
             
-            log_router("Nebius", f"Routing to {NEBIUS_MODEL}...", Theme.GOLD)
+            log_router("Inference", f"Routing to {SOVEREIGN_MODEL}...", Theme.GOLD)
             
             messages = [
                 {
@@ -521,7 +524,7 @@ def run_isai_agent(
 
             if stream_output:
                 response_stream = client.chat.completions.create(
-                    model=NEBIUS_MODEL,
+                    model=SOVEREIGN_MODEL,
                     messages=messages,
                     stream=True
                 )
@@ -535,15 +538,15 @@ def run_isai_agent(
                 return "".join(collected)
             else:
                 response = client.chat.completions.create(
-                    model=NEBIUS_MODEL,
+                    model=SOVEREIGN_MODEL,
                     messages=messages
                 )
                 return response.choices[0].message.content
 
         except Exception as e:
-            log_router("Warning", f"Nebius error ({e}). Using Sovereign Edge.", Theme.AMBER)
+            log_router("Warning", f"Inference gateway error ({e}). Using Sovereign Edge.", Theme.AMBER)
     else:
-        log_router("Edge", "NEBIUS_API_KEY unset. Using Sovereign Edge.", Theme.GRAY)
+        log_router("Edge", "Using Local Sovereign Edge Core.", Theme.GRAY)
 
     # 4. Clean & Direct Sovereign Edge Synthesis
     direct_response = generate_direct_response(user_prompt, tool_result, style_key)
