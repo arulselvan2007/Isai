@@ -608,6 +608,53 @@ def run_isai_agent(
 
 # =============================================================================
 # =============================================================================
+# Unified Command & Prompt Processing
+# =============================================================================
+
+def process_command(
+    user_input: str,
+    state: Optional[Dict[str, Any]] = None,
+    stream: bool = False
+) -> str:
+    """
+    Unified command and conversational processing engine.
+    Handles slash commands (/tools, /style, /status, /help, etc.) and agent prompts (e.g. 'hi', queries).
+    """
+    if state is None:
+        state = GLOBAL_STATE
+
+    clean_input = user_input.strip()
+    if not clean_input:
+        return ""
+
+    # 1. Handle Slash Commands
+    if clean_input.startswith("/"):
+        is_cmd, cmd_out = handle_slash_command(clean_input, state)
+        if is_cmd:
+            clean_result = (cmd_out or "").strip()
+            if stream and clean_result:
+                print(clean_result)
+            return clean_result
+
+    # 2. Handle Conversational Agent Turn
+    active_style = state.get("style", "sovereign")
+    history = state.get("history", [])
+
+    response_text = run_isai_agent(
+        user_prompt=clean_input,
+        conversation_history=history,
+        style_key=active_style,
+        stream_output=stream
+    )
+
+    # Record turn in multi-turn history
+    history.append({"role": "user", "content": clean_input})
+    history.append({"role": "assistant", "content": response_text})
+
+    return response_text
+
+
+# =============================================================================
 # Interactive Conversational Shell
 # =============================================================================
 
@@ -657,29 +704,20 @@ def interactive_session() -> None:
             if not user_input:
                 continue
 
-            # Intercept Slash Commands IMMEDIATELY at the very beginning of the loop
-            is_cmd, cmd_output = handle_slash_command(user_input, session_state)
-            if is_cmd:
-                if cmd_output:
-                    print(cmd_output)
-                if session_state.get("exit"):
-                    break
-                # Do NOT send slash commands to the model or router
-                continue
+            # Process input through unified process_command engine
+            is_slash = user_input.startswith("/")
+            if not is_slash:
+                print()
 
-            # Process Normal Conversational Turn
-            print()
-            response_text = run_isai_agent(
-                user_prompt=user_input,
-                conversation_history=history,
-                style_key=active_style,
-                stream_output=True
-            )
-            print()
+            output = process_command(user_input, session_state, stream=not is_slash)
 
-            # Record turn in multi-turn history
-            history.append({"role": "user", "content": user_input})
-            history.append({"role": "assistant", "content": response_text})
+            if is_slash and output:
+                print(output)
+            elif not is_slash:
+                print()
+
+            if session_state.get("exit"):
+                break
 
         except (KeyboardInterrupt, EOFError):
             print(f"\n\n{Theme.GOLD}இ Isai:{Theme.RESET} Session concluded sovereignly.\n")
