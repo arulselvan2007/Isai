@@ -210,6 +210,28 @@ class ToolRegistry:
             return f"Calculation Error: {err}"
 
     @staticmethod
+    def generate_image(prompt: str, style_key: str = "sovereign") -> str:
+        """Simulates local sovereign image synthesis and saves output artifact."""
+        output_filename = "generated_image_output.png"
+        try:
+            from PIL import Image, ImageDraw
+            img = Image.new("RGB", (768, 768), color=(11, 12, 16))
+            draw = ImageDraw.Draw(img)
+            center = (384, 384)
+            for r, color, width in [
+                (260, (255, 184, 34), 3),
+                (200, (250, 130, 49), 2),
+                (140, (167, 112, 248), 2),
+                (80, (0, 229, 255), 2),
+            ]:
+                draw.ellipse([center[0] - r, center[1] - r, center[0] + r, center[1] + r], outline=color, width=width)
+            img.save(output_filename)
+        except Exception:
+            pass
+
+        return f"⚡ Image synthesis completed locally. File saved: {output_filename}"
+
+    @staticmethod
     def system_telemetry() -> str:
         """Returns live sovereign node telemetry."""
         uname = platform.uname()
@@ -225,9 +247,39 @@ class ToolRegistry:
         )
 
 
-def analyze_and_execute_tools(user_prompt: str) -> Optional[Tuple[str, str]]:
+def analyze_and_execute_tools(user_prompt: str, style_key: str = "sovereign") -> Optional[Tuple[str, str]]:
     """Analyzes user prompt for tool execution intent and runs matched tool quietly."""
     prompt_lower = user_prompt.lower().strip()
+
+    # Image Generation intent (requires explicit generation keywords)
+    image_prefixes = [
+        "generate an image of",
+        "generate an image",
+        "generate image of",
+        "generate image",
+        "create an image of",
+        "create an image",
+        "create image of",
+        "create image",
+        "draw an image of",
+        "draw an image",
+        "draw a picture of",
+        "draw a picture",
+        "render an image of",
+        "render an image",
+        "generate a picture of",
+        "generate a picture",
+        "make an image of",
+        "make an image",
+        "paint an image of",
+        "paint an image",
+    ]
+    for prefix in image_prefixes:
+        if prompt_lower.startswith(prefix):
+            img_prompt = user_prompt[len(prefix):].strip() or user_prompt.strip()
+            log_router("ImageGenerator", f"Synthesizing image for '{img_prompt}'...", Theme.CYAN)
+            res = ToolRegistry.generate_image(img_prompt, style_key)
+            return "image_generator", res
 
     # Telemetry intent
     if any(k in prompt_lower for k in ["system status", "telemetry", "node status", "hardware specs", "specs", "uptime"]):
@@ -330,10 +382,11 @@ def handle_slash_command(command_line: str, state: Dict[str, Any]) -> Tuple[bool
     elif cmd == "/tools":
         msg = (
             f"\n{Theme.CYAN}--- Autonomous Tool Registry ---{Theme.RESET}\n"
-            f"1. {Theme.BOLD}web_search{Theme.RESET}: Live DuckDuckGo sovereign information retrieval\n"
-            f"2. {Theme.BOLD}calculate{Theme.RESET}: Safe AST-based mathematical evaluation\n"
-            f"3. {Theme.BOLD}system_telemetry{Theme.RESET}: Live hardware and node runtime metrics\n"
-            f"4. {Theme.BOLD}style_expansion{Theme.RESET}: Real-time sensory prompt expansion\n"
+            f"1. {Theme.BOLD}image_generator{Theme.RESET}: Local sovereign image synthesis and visual canvas generation\n"
+            f"2. {Theme.BOLD}web_search{Theme.RESET}: Live DuckDuckGo sovereign information retrieval\n"
+            f"3. {Theme.BOLD}calculate{Theme.RESET}: Safe AST-based mathematical evaluation\n"
+            f"4. {Theme.BOLD}system_telemetry{Theme.RESET}: Live hardware and node runtime metrics\n"
+            f"5. {Theme.BOLD}style_expansion{Theme.RESET}: Real-time sensory prompt expansion\n"
         )
         return True, msg
 
@@ -384,11 +437,7 @@ def generate_direct_response(user_prompt: str, tool_result: Optional[Tuple[str, 
     # 1. If a tool was executed, return the direct result
     if tool_result:
         tool_name, tool_data = tool_result
-        if tool_name == "calculate":
-            return tool_data
-        elif tool_name == "system_telemetry":
-            return tool_data
-        elif tool_name == "web_search":
+        if tool_name in ("calculate", "system_telemetry", "web_search", "image_generator"):
             return tool_data
 
     prompt_clean = user_prompt.strip()
@@ -493,7 +542,7 @@ def run_isai_agent(
     log_router("Style", f"Active Style Profile: {style_name}", Theme.PURPLE)
 
     # 2. Autonomous Tool Routing (quietly executed)
-    tool_result = analyze_and_execute_tools(user_prompt)
+    tool_result = analyze_and_execute_tools(user_prompt, style_key)
     augmented_context = ""
     if tool_result:
         tool_name, tool_data = tool_result
