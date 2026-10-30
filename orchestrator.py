@@ -607,22 +607,33 @@ def run_isai_agent(
 
 
 # =============================================================================
+# =============================================================================
 # Interactive Conversational Shell
 # =============================================================================
 
 def interactive_session() -> None:
     """Main interactive conversational loop in terminal."""
-    print_banner()
+    try:
+        # 1. Render TrueColor Golden Amber Banner
+        print_banner()
+    except Exception as e:
+        sys.stderr.write(f"[Warning] Failed rendering banner: {e}\n")
 
     session_state = GLOBAL_STATE
     history: List[Dict[str, str]] = session_state["history"]
 
-    # Display clean initial status card
-    initial_style = session_state.get("style", "sovereign")
-    print(f" {Theme.GOLD}⚡ Sovereign Core:{Theme.RESET} Online · {Theme.EMERALD}Edge Mode Active{Theme.RESET}")
-    print(f" {Theme.PURPLE}🎨 Dynamic Style:{Theme.RESET} {STYLES[initial_style]['name']}")
-    print(f" {Theme.GRAY}Type {Theme.BOLD}/help{Theme.RESET}{Theme.GRAY} for commands or begin chatting below.{Theme.RESET}\n")
+    # 2. Display Sovereign System Telemetry at startup
+    try:
+        initial_style = session_state.get("style", "sovereign")
+        print(f"\n{Theme.CYAN}--- Sovereign System Telemetry ---{Theme.RESET}")
+        print(ToolRegistry.system_telemetry())
+        print(f"• Active Style: {STYLES[initial_style]['name']}")
+        print(f"• Mode: Local Sovereign Edge Core (Fully Standalone)\n")
+        print(f" {Theme.GRAY}Type {Theme.BOLD}/help{Theme.RESET}{Theme.GRAY} for commands or begin chatting below.{Theme.RESET}\n")
+    except Exception as e:
+        sys.stderr.write(f"[Warning] Telemetry startup error: {e}\n")
 
+    # 3. Interactive conversational loop
     while True:
         try:
             active_style = session_state.get("style", "sovereign")
@@ -632,12 +643,21 @@ def interactive_session() -> None:
             prompt_symbol = f"{Theme.GOLD}╰─❯ {Theme.RESET}"
             
             print(prompt_header)
-            user_input = input(prompt_symbol).strip()
+            try:
+                user_input = input(prompt_symbol)
+            except EOFError:
+                # Reached end-of-file (e.g. non-interactive piping completed)
+                print(f"\n{Theme.GOLD}இ Isai:{Theme.RESET} Session completed.\n")
+                break
+            except KeyboardInterrupt:
+                print(f"\n\n{Theme.GOLD}இ Isai:{Theme.RESET} Session interrupted. Sovereign state saved.\n")
+                break
 
+            user_input = user_input.strip()
             if not user_input:
                 continue
 
-            # 1. Intercept Slash Commands IMMEDIATELY at the very beginning of the loop
+            # Intercept Slash Commands IMMEDIATELY at the very beginning of the loop
             is_cmd, cmd_output = handle_slash_command(user_input, session_state)
             if is_cmd:
                 if cmd_output:
@@ -647,7 +667,7 @@ def interactive_session() -> None:
                 # Do NOT send slash commands to the model or router
                 continue
 
-            # 2. Process Normal Conversational Turn
+            # Process Normal Conversational Turn
             print()
             response_text = run_isai_agent(
                 user_prompt=user_input,
@@ -657,27 +677,46 @@ def interactive_session() -> None:
             )
             print()
 
-            # 3. Record turn in multi-turn history
+            # Record turn in multi-turn history
             history.append({"role": "user", "content": user_input})
             history.append({"role": "assistant", "content": response_text})
 
         except (KeyboardInterrupt, EOFError):
-            print(f"\n\n{Theme.GOLD}இ Isai:{Theme.RESET} Session interrupted. Sovereign state saved.\n")
+            print(f"\n\n{Theme.GOLD}இ Isai:{Theme.RESET} Session concluded sovereignly.\n")
             break
         except Exception as err:
-            print(f"\n {Theme.RED}[Error]{Theme.RESET} {err}\n")
+            sys.stderr.write(f"\n {Theme.RED}[Session Error]{Theme.RESET} {err}\n")
 
 
 # =============================================================================
-# CLI Entrypoint
+# CLI Entrypoint & Initialization
 # =============================================================================
+
+def main() -> None:
+    """Explicit application entry point with robust error handling."""
+    try:
+        # Check if single-shot arguments were provided
+        cli_args = [a.strip() for a in sys.argv[1:] if a.strip()]
+        query_args = [a for a in cli_args if a not in ("--interactive", "-i")]
+
+        if query_args:
+            # Single-shot execution mode
+            query = " ".join(query_args)
+            result = run_isai_agent(query, stream_output=False)
+            if result:
+                print(result)
+        else:
+            # Default behavior: Launch full interactive terminal session
+            interactive_session()
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Theme.GOLD}இ Isai:{Theme.RESET} Process terminated.\n")
+    except Exception as exc:
+        sys.stderr.write(f"\n{Theme.RED}[Fatal Error]{Theme.RESET} Sovereign initialization failure: {exc}\n")
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
+
 
 if __name__ == "__main__":
-    # If arguments are passed, execute single-shot query
-    if len(sys.argv) > 1 and not sys.argv[1].startswith("--interactive"):
-        query = " ".join(sys.argv[1:])
-        result = run_isai_agent(query, stream_output=False)
-        print(result)
-    else:
-        # Default: Launch rich interactive terminal conversational loop
-        interactive_session()
+    main()
